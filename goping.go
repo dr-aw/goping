@@ -11,22 +11,36 @@ import (
 )
 
 func main() {
-	if len(os.Args) != 3 {
-		fmt.Println("Usage: go run ping.go <host> <timeout>")
+	if len(os.Args) != 4 {
+		fmt.Println("Usage: go run ping.go <host> <timeout> <attempts>")
 		return
 	}
 	addr := os.Args[1]
-	time := os.Args[2]
-	timeOut, err := strconv.Atoi(time)
-	if err != nil {
+	timeStr := os.Args[2]
+	attemptStr := os.Args[3]
+	attempts, err := strconv.Atoi(attemptStr)
+	if err != nil || attempts < 1 {
+		fmt.Println("Attempts should be a number")
+	}
+	timeInt, err := strconv.Atoi(timeStr)
+	if err != nil || timeInt < 1 {
 		fmt.Println("TimeOut should be a number")
 	}
-	if err := ping(addr, timeOut); err != nil {
-		fmt.Printf("Ping to %s failed: %v\n", addr, err)
+	timeOut := time.Duration(timeInt)
+
+	for n := 1; n < attempts+1; n++ {
+		err := ping(addr, timeOut)
+		if err != nil {
+			fmt.Printf("%d\tPing to %s failed: %v\n", n, addr, err)
+		} else {
+			fmt.Printf("%d\tPing to %s succeeded\n", n, addr)
+			break
+		}
+		time.Sleep(5 * time.Second) // Добавляем паузу между попытками
 	}
 }
 
-func ping(addr string, timeOut int) error {
+func ping(addr string, timeOut time.Duration) error {
 	c, err := icmp.ListenPacket("ip4:icmp", "0.0.0.0")
 	if err != nil {
 		fmt.Println("Listen")
@@ -65,7 +79,7 @@ func ping(addr string, timeOut int) error {
 	}
 
 	// Set time-out
-	c.SetDeadline(time.Now().Add(time.Duration(timeOut) * time.Second))
+	c.SetDeadline(time.Now().Add(timeOut * time.Second))
 
 	reply := make([]byte, 1500)
 	n, peer, err := c.ReadFrom(reply)
@@ -84,7 +98,7 @@ func ping(addr string, timeOut int) error {
 
 	switch rm.Type {
 	case ipv4.ICMPTypeEchoReply:
-		fmt.Printf("Ping to %s succeeded, reply from %s in %v\n", addr, peer, duration)
+		fmt.Printf("Ping to %s succeeded, reply from %s in %v\n\a", addr, peer, duration)
 	default:
 		fmt.Printf("Got unexpected reply from %s: %+v\n", peer, rm)
 	}
