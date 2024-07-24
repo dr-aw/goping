@@ -1,34 +1,32 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
 	"net"
 	"os"
-	"strconv"
 	"time"
 )
 
 func main() {
-	if len(os.Args) != 4 {
-		fmt.Println("Usage: go run ping.go <host> <timeout> <attempts>")
+	attempts := flag.Int("a", 3, "number of ping attempts")
+	timeInt := flag.Int("t", 2, "ping timeout in seconds")
+	flag.Parse()
+
+	if flag.NArg() == 0 {
+		fmt.Println("Usage: go run ping.go [-a attempts] [-t timeout] <host>")
 		return
 	}
-	addr := os.Args[1]
-	timeStr := os.Args[2]
-	attemptStr := os.Args[3]
-	attempts, err := strconv.Atoi(attemptStr)
-	if err != nil || attempts < 1 {
-		fmt.Println("Attempts should be a number")
-	}
-	timeInt, err := strconv.Atoi(timeStr)
-	if err != nil || timeInt < 1 {
-		fmt.Println("TimeOut should be a number")
-	}
-	timeOut := time.Duration(timeInt)
+	addr := flag.Arg(0)
+	timeOut := time.Duration(*timeInt) * time.Second
 
-	for n := 1; n < attempts+1; n++ {
+	fmt.Printf("___________________________\nHost:\t\t%s\n", addr)
+	fmt.Printf("Attempts:\t%d\n", *attempts)
+	fmt.Printf("Timeout:\t%v\n___________________________\n", timeOut)
+
+	for n := 1; n < *attempts+1; n++ {
 		err := ping(addr, timeOut)
 		if err != nil {
 			fmt.Printf("%d\tPing to %s failed: %v\n", n, addr, err)
@@ -36,21 +34,19 @@ func main() {
 			fmt.Printf("%d\tPing to %s succeeded\n", n, addr)
 			break
 		}
-		time.Sleep(5 * time.Second) // Добавляем паузу между попытками
+		time.Sleep(2 * time.Second)
 	}
 }
 
 func ping(addr string, timeOut time.Duration) error {
 	c, err := icmp.ListenPacket("ip4:icmp", "0.0.0.0")
 	if err != nil {
-		fmt.Println("Listen")
 		return err
 	}
 	defer c.Close()
 
 	dst, err := net.ResolveIPAddr("ip4", addr)
 	if err != nil {
-		fmt.Println("Resolve")
 		return err
 	}
 
@@ -66,7 +62,6 @@ func ping(addr string, timeOut time.Duration) error {
 	}
 	msgBytes, err := msg.Marshal(nil)
 	if err != nil {
-		fmt.Println("msgBytes")
 		return err
 	}
 
@@ -74,7 +69,6 @@ func ping(addr string, timeOut time.Duration) error {
 
 	// Send Echo Request
 	if _, err := c.WriteTo(msgBytes, dst); err != nil {
-		fmt.Println("WriteTo")
 		return err
 	}
 
@@ -84,7 +78,6 @@ func ping(addr string, timeOut time.Duration) error {
 	reply := make([]byte, 1500)
 	n, peer, err := c.ReadFrom(reply)
 	if err != nil {
-		fmt.Println("Reply")
 		return err
 	}
 
@@ -92,7 +85,6 @@ func ping(addr string, timeOut time.Duration) error {
 
 	rm, err := icmp.ParseMessage(1, reply[:n])
 	if err != nil {
-		fmt.Println("Parse")
 		return err
 	}
 

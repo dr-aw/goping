@@ -1,4 +1,4 @@
-**A simple ping program on go.**
+**A simple ICMP ping program on go.**
 
 Usage:      `./goping <host> <timeOut>`
 
