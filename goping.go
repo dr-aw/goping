@@ -19,6 +19,10 @@ func main() {
 		fmt.Println("Usage: go run ping.go [-a attempts] [-t timeout] <host>")
 		return
 	}
+	if *attempts < 1 || *timeInt < 1 {
+		fmt.Println("Only positive numbers of attempts and timeOut permitted")
+		return
+	}
 	addr := flag.Arg(0)
 	timeOut := time.Duration(*timeInt) * time.Second
 
@@ -31,7 +35,7 @@ func main() {
 		if err != nil {
 			fmt.Printf("%d\tPing to %s failed: %v\n", n, addr, err)
 		} else {
-			fmt.Printf("%d\tPing to %s succeeded\n", n, addr)
+			fmt.Printf("%d\tPing to %s succeeded at [%.22v]\n", n, addr, time.Now())
 			break
 		}
 		time.Sleep(2 * time.Second)
@@ -73,7 +77,7 @@ func ping(addr string, timeOut time.Duration) error {
 	}
 
 	// Set time-out
-	c.SetDeadline(time.Now().Add(timeOut * time.Second))
+	c.SetDeadline(time.Now().Add(timeOut))
 
 	reply := make([]byte, 1500)
 	n, peer, err := c.ReadFrom(reply)

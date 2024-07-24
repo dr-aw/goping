@@ -1,5 +1,5 @@
 **A simple ICMP ping program on go.**
 
-Usage:      `./goping <host> <timeOut>`
+Usage:      `./goping -a <attempts> -t <timeOut> <host>`
 
-Example:    `./goping github.com 2`
+Example:    `./goping -a 4 -t 2 github.com`
